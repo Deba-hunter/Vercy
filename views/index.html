@@ -2,88 +2,103 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>📲 WhatsApp Auto Sender</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Auto Messenger</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
+      font-family: 'Rubik', sans-serif;
       margin: 0;
       padding: 0;
-      background: linear-gradient(to bottom right, #25d366, #075e54);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #fff;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      min-height: 100vh;
+      justify-content: center;
+      height: 100vh;
+      background: #f0f2f5;
     }
     .container {
-      background: #ffffff;
-      color: #333;
-      padding: 20px;
+      background: white;
+      padding: 30px;
       border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      text-align: center;
       width: 90%;
       max-width: 400px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.2);
     }
-    h2 {
-      text-align: center;
-      color: #075e54;
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
     }
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
+    #qr-section img {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 20px;
     }
-    input[type="text"],
-    input[type="number"],
-    input[type="file"] {
+    .hidden {
+      display: none;
+    }
+    input, button {
       width: 100%;
       padding: 10px;
-      margin-top: 5px;
-      border: 1px solid #ccc;
+      margin: 10px 0;
       border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
     }
     button {
-      width: 100%;
-      margin-top: 20px;
-      padding: 12px;
-      background-color: #25d366;
-      border: none;
-      border-radius: 10px;
+      background-color: #25D366;
       color: white;
-      font-size: 16px;
+      border: none;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.3s;
     }
     button:hover {
-      background-color: #128c7e;
-    }
-    @media screen and (max-width: 500px) {
-      .container {
-        padding: 15px;
-      }
-      h2 {
-        font-size: 20px;
-      }
+      background-color: #1ebe5d;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>📤 WhatsApp Message Sender</h2>
-    <form action="/start" method="POST" enctype="multipart/form-data">
-      <label for="number">WhatsApp Number</label>
-      <input type="text" name="number" id="number" placeholder="e.g. 919876543210" required />
+    <div id="qr-section">
+      <h1>📲 Scan WhatsApp QR Code</h1>
+      <p>Use your phone to scan the QR code below:</p>
+      <img id="qrImage" src="/qr" alt="QR Code" />
+      <p id="status">Waiting for scan...</p>
+    </div>
 
-      <label for="delay">Delay (in seconds)</label>
-      <input type="number" name="delay" id="delay" placeholder="e.g. 5" required />
+    <div id="form-section" class="hidden">
+      <h1>🚀 Send WhatsApp Messages</h1>
+      <form action="/start" method="POST" enctype="multipart/form-data">
+        <label><strong>Receiver Number:</strong></label>
+        <input type="text" name="number" placeholder="e.g. 919876543210" required />
 
-      <label for="messageFile">Upload messages.txt</label>
-      <input type="file" name="messageFile" id="messageFile" accept=".txt" required />
+        <label><strong>Delay (seconds):</strong></label>
+        <input type="number" name="delay" value="5" required />
 
-      <button type="submit">🚀 Start Sending</button>
-    </form>
+        <label><strong>Upload Message File (.txt):</strong></label>
+        <input type="file" name="messageFile" accept=".txt" required />
+
+        <button type="submit">Start Sending</button>
+      </form>
+    </div>
   </div>
+
+  <script>
+    async function checkConnection() {
+      const res = await fetch('/isConnected');
+      const { connected } = await res.json();
+      if (connected) {
+        document.getElementById('qr-section').classList.add('hidden');
+        document.getElementById('form-section').classList.remove('hidden');
+      } else {
+        setTimeout(checkConnection, 2000);
+      }
+    }
+
+    checkConnection();
+  </script>
 </body>
-</html>
+                                                    </html>
+
+                                                    
