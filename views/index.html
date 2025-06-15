@@ -1,104 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp Auto Messenger</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Rubik', sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #f0f2f5;
-    }
-    .container {
-      background: white;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-    }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 20px;
-    }
-    #qr-section img {
-      width: 100%;
-      max-width: 300px;
-      margin-bottom: 20px;
-    }
-    .hidden {
-      display: none;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-    button {
-      background-color: #25D366;
-      color: white;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #1ebe5d;
-    }
-  </style>
+  <title>Send WhatsApp Message</title>
 </head>
 <body>
-  <div class="container">
-    <div id="qr-section">
-      <h1>📲 Scan WhatsApp QR Code</h1>
-      <p>Use your phone to scan the QR code below:</p>
-      <img id="qrImage" src="/qr" alt="QR Code" />
-      <p id="status">Waiting for scan...</p>
-    </div>
+  <h2>ðŸ“¨ WhatsApp Sender</h2>
+  <form method="post" action="/api" enctype="multipart/form-data">
+    <label>Receiver (with country code):</label><br>
+    <input name="receiver" required><br><br>
 
-    <div id="form-section" class="hidden">
-      <h1>🚀 Send WhatsApp Messages</h1>
-      <form action="/start" method="POST" enctype="multipart/form-data">
-        <label><strong>Receiver Number:</strong></label>
-        <input type="text" name="number" placeholder="e.g. 919876543210" required />
+    <label>Message (optional if file is uploaded):</label><br>
+    <textarea name="message" rows="4" cols="40"></textarea><br><br>
 
-        <label><strong>Delay (seconds):</strong></label>
-        <input type="number" name="delay" value="5" required />
+    <label>Upload .txt file (optional):</label><br>
+    <input type="file" name="file"><br><br>
 
-        <label><strong>Upload Message File (.txt):</strong></label>
-        <input type="file" name="messageFile" accept=".txt" required />
+    <label>Delay (seconds):</label><br>
+    <input type="number" name="delay" value="2"><br><br>
 
-        <button type="submit">Start Sending</button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    async function checkConnection() {
-      const res = await fetch('/isConnected');
-      const { connected } = await res.json();
-      if (connected) {
-        document.getElementById('qr-section').classList.add('hidden');
-        document.getElementById('form-section').classList.remove('hidden');
-      } else {
-        setTimeout(checkConnection, 2000);
-      }
-    }
-
-    checkConnection();
-  </script>
+    <button type="submit">Send</button>
+  </form>
 </body>
-                                                    </html>
-
-                                                    
+</html>
