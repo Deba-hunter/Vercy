@@ -1,4 +1,4 @@
-const { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('baileys');
 const path = require('path');
 const fs = require('fs');
 const formidable = require('formidable');
