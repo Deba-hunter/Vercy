@@ -1,13 +1,12 @@
 {
   "name": "whatsapp-bot",
   "version": "1.0.0",
-  "main": "index.js",
-  "type": "commonjs",
-  "engines": {
-    "node": "18.x"
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
   },
   "dependencies": {
-    "baileys": "^4.4.0",
-    "formidable": "^3.5.3"
+    "baileys": "^6.7.18",
+    "formidable": "^2.1.1"
   }
 }
