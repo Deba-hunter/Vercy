@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📲 WhatsApp Auto Sender</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom right, #25d366, #075e54);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: #ffffff;
+      color: #333;
+      padding: 20px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+    h2 {
+      text-align: center;
+      color: #075e54;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #25d366;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #128c7e;
+    }
+    @media screen and (max-width: 500px) {
+      .container {
+        padding: 15px;
+      }
+      h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📤 WhatsApp Message Sender</h2>
+    <form action="/start" method="POST" enctype="multipart/form-data">
+      <label for="number">WhatsApp Number</label>
+      <input type="text" name="number" id="number" placeholder="e.g. 919876543210" required />
+
+      <label for="delay">Delay (in seconds)</label>
+      <input type="number" name="delay" id="delay" placeholder="e.g. 5" required />
+
+      <label for="messageFile">Upload messages.txt</label>
+      <input type="file" name="messageFile" id="messageFile" accept=".txt" required />
+
+      <button type="submit">🚀 Start Sending</button>
+    </form>
+  </div>
+</body>
+</html>
