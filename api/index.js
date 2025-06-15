@@ -1,85 +1,69 @@
-const express = require('express');
-const fs = require('fs');
-const multer = require('multer');
-const { default: makeWASocket, useMultiFileAuthState, delay } = require('baileys');
-const { toDataURL } = require('qrcode');
+const { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const path = require('path');
+const fs = require('fs');
+const formidable = require('formidable');
 
-const app = express();
-app.use(express.static(path.join(__dirname, '..', 'views')));
-app.use(express.urlencoded({ extended: true }));
+module.exports = async (req, res) => {
+  const sessionFolder = path.resolve(__dirname, 'session');
+  const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+  const { version } = await fetchLatestBaileysVersion();
 
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, '..', 'uploads'),
-  filename: (_, __, cb) => cb(null, 'messages.txt'),
-});
-const upload = multer({ storage });
-
-let sock, qrData, connected = false;
-
-async function startSock() {
-  const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, '..', 'session'));
-  sock = makeWASocket({ auth: state, printQRInTerminal: false });
-  sock.ev.on('creds.update', saveCreds);
-  sock.ev.on('connection.update', async ({ connection, qr }) => {
-    if (qr) {
-      qrData = await toDataURL(qr);
-      connected = false;
-    }
-    if (connection === 'open') {
-      connected = true;
-      qrData = null;
-      console.log('✅ WhatsApp connected');
-    }
-    if (connection === 'close') {
-      connected = false;
-      startSock();
-    }
+  const sock = makeWASocket({
+    version,
+    auth: state,
+    printQRInTerminal: false,
+    browser: ['Bot', 'Chrome', '1.0'],
+    getMessage: async () => ({ conversation: 'hello' }),
   });
-}
-startSock();
 
-app.get('/qr', (req, res) => {
-  if (!qrData) return res.status(404).send('<h3>QR not ready yet. Please wait...</h3>');
-  res.send(`
-    <div style="text-align:center;padding:20px">
-      <h2>📟 Scan WhatsApp QR</h2>
-      <img src="${qrData}" style="max-width:90vw;max-height:90vh;" />
-      <p>Then go to <a href="/">/</a> to send messages.</p>
-    </div>
-  `);
-});
+  sock.ev.on('creds.update', saveCreds);
 
-app.get('/', (req, res) => {
-  if (!connected) return res.redirect('/qr');
-  res.sendFile(path.join(__dirname, '..', 'views', 'index.html'));
-});
-
-app.post('/start', upload.single('messageFile'), async (req, res) => {
-  if (!connected) return res.send('❌ Not connected yet.');
-
-  const number = req.body.number.trim();
-  const delayMs = Math.max(1, parseInt(req.body.delay)) * 1000;
-  const filePath = path.join(__dirname, '..', 'uploads/messages.txt');
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(400).send('❌ Message file missing.');
+  // 1️⃣ Login code GET
+  if (req.method === 'GET') {
+    if (!sock.authState.creds.registered) {
+      const { code } = await sock.requestPairingCode(sock.user.id.split(':')[0]);
+      return res.status(200).json({ code });
+    } else {
+      return res.status(200).json({ message: 'Already logged in' });
+    }
   }
 
-  const messages = fs.readFileSync(filePath, 'utf‑8').split('\n').filter(Boolean);
-  const jid = number.includes('@s.whatsapp.net') ? number : `${number}@s.whatsapp.net`;
+  // 2️⃣ Message/File Send POST
+  if (req.method === 'POST') {
+    const form = new formidable.IncomingForm({ multiples: false });
+    form.uploadDir = '/tmp';
 
-  (async function sendLoop() {
-    while (true) {
-      for (const msg of messages) {
-        await sock.sendMessage(jid, { text: msg });
-        console.log(`✅ Sent: ${msg}`);
-        await delay(delayMs);
+    form.parse(req, async (err, fields, files) => {
+      if (err) return res.status(500).json({ error: 'Form error' });
+
+      const { receiver, message, delay } = fields;
+      const delaySec = parseInt(delay) || 2;
+
+      try {
+        if (files.file) {
+          const filePath = files.file[0].filepath;
+          const lines = fs.readFileSync(filePath, 'utf-8').split('\n').filter(Boolean);
+
+          for (const line of lines) {
+            const jid = receiver + '@s.whatsapp.net';
+            await sock.sendMessage(jid, { text: line });
+            await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+          }
+
+          return res.status(200).json({ message: `File sent to ${receiver}` });
+
+        } else if (receiver && message) {
+          const jid = receiver + '@s.whatsapp.net';
+          await sock.sendMessage(jid, { text: message });
+          return res.status(200).json({ message: `Message sent to ${receiver}` });
+        } else {
+          return res.status(400).json({ error: 'Missing receiver/message' });
+        }
+      } catch (err) {
+        return res.status(500).json({ error: 'Sending failed' });
       }
-    }
-  })();
-
-  res.send('<h3>✅ Messaging started! Check WhatsApp.</h3>');
-});
-
-module.exports = app;
+    });
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
+  }
+};
