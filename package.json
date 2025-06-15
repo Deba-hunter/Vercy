@@ -2,8 +2,12 @@
   "name": "whatsapp-bot",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.18",
+    "baileys": "^4.4.0",
     "formidable": "^3.5.3"
   }
 }
