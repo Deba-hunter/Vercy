@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WhatsApp Login</title>
+  <script>
+    async function fetchCode() {
+      const res = await fetch('/api');
+      const data = await res.json();
+      document.getElementById('code').innerText = data.code || data.message || 'Error';
+    }
+    window.onload = fetchCode;
+  </script>
+</head>
+<body>
+  <h2>🔐 Login to WhatsApp</h2>
+  <p>Go to WhatsApp → Linked Devices → Use Code Instead</p>
+  <h1 id="code" style="font-size: 3em; color: green;">Loading...</h1>
+</body>
+</html>
