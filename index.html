@@ -1,0 +1,131 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Auto Sender</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    h1 {
+      margin-top: 1rem;
+      font-size: 1.8rem;
+      color: #00ffd0;
+    }
+
+    #qr {
+      margin: 1rem 0;
+      border: 3px dashed #00ffd0;
+      padding: 10px;
+      background: #fff;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1rem;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 255, 208, 0.2);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="file"] {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 12px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .start {
+      background: #00ffd0;
+      color: black;
+    }
+
+    .stop {
+      background: red;
+      color: white;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-size: 1rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🟢 WhatsApp Auto Sender</h1>
+
+  <div id="qr">Loading QR...</div>
+
+  <form id="sendForm">
+    <input type="text" name="receiver" placeholder="Receiver Number (e.g. 919876543210)" required />
+    <input type="number" name="delay" placeholder="Delay (seconds)" required />
+    <input type="file" name="file" accept=".txt" required />
+    <button type="submit" class="start">Start</button>
+  </form>
+
+  <button class="stop" onclick="stopSending()">Stop</button>
+
+  <div id="message"></div>
+
+  <script>
+    async function loadQR() {
+      const res = await fetch('/api/qr');
+      const data = await res.json();
+      const qrBox = document.getElementById('qr');
+      if (data.qr) {
+        qrBox.innerHTML = `<img src="${data.qr}" width="200" />`;
+      } else {
+        qrBox.innerText = data.message;
+        setTimeout(loadQR, 2000);
+      }
+    }
+
+    loadQR();
+
+    document.getElementById('sendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const res = await fetch('/api/start', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message || data.error;
+    });
+
+    async function stopSending() {
+      const res = await fetch('/api/stop', { method: 'POST' });
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message;
+    }
+  </script>
+</body>
+</html>

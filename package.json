@@ -1,12 +1,14 @@
 {
-  "name": "whatsapp-bot",
+  "name": "baileys-bot",
   "version": "1.0.0",
-  "main": "api/index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node api/index.js"
+    "start": "node app.js"
   },
   "dependencies": {
-    "baileys": "^6.7.18",
-    "formidable": "^2.1.1"
+    "express": "^5.1.0",
+    "formidable": "^3.5.4",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "qrcode": "^1.5.3"
   }
 }
