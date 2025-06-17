@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const sessionFolder = path.join(__dirname, 'session');
 
 app.use(express.json());
-app.use(express.static('public')); // HTML frontend from /public
+app.use(express.static('public'));
 
 if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
 
@@ -76,12 +76,15 @@ app.post('/api/start', (req, res) => {
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Form parse error' });
 
-    const { receiver, delay } = fields;
-    const delaySec = parseInt(delay) || 2; // ✅ unlimited time allowed
-
+    const { receiver, delay, name } = fields;
+    const delaySec = parseInt(delay) || 2;
 
     if (!receiver || !/^\d{10,15}$/.test(receiver)) {
       return res.status(400).json({ error: '❌ Invalid WhatsApp number' });
+    }
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ error: '❌ Name is required' });
     }
 
     if (!files.file) return res.status(400).json({ error: '❌ File required' });
@@ -105,7 +108,8 @@ app.post('/api/start', (req, res) => {
       while (isLooping) {
         for (const line of lines) {
           if (!isLooping) break;
-          await sock.sendMessage(jid, { text: line });
+          const finalMsg = `${name.trim()} ${line}`;
+          await sock.sendMessage(jid, { text: finalMsg });
           await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
         }
       }
@@ -126,3 +130,4 @@ app.post('/api/stop', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+  
