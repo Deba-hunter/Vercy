@@ -3,139 +3,156 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📲 WhatsApp Auto Sender</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <title>WhatsApp Auto Sender</title>
   <style>
     * {
       box-sizing: border-box;
     }
 
     body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #43cea2, #185a9d);
+      padding: 0;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-      animation: fadeIn 1s ease-in-out;
+      height: 100vh;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .card {
-      background: white;
-      width: 100%;
-      max-width: 420px;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-      animation: slideUp 0.8s ease;
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    .container {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2rem;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 20px;
-      color: #185a9d;
+      margin-bottom: 1.5rem;
     }
 
-    input[type="text"],
-    input[type="number"],
-    input[type="file"] {
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input, select, button {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
+      padding: 10px;
+      border: none;
       border-radius: 10px;
-      font-size: 16px;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+
+    input[type="file"] {
+      background: #fff;
+      color: #000;
     }
 
     button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-
-    .start-btn {
-      background-color: #43cea2;
+      background: #28a745;
       color: white;
-    }
-
-    .start-btn:hover {
-      background-color: #2fb089;
-    }
-
-    .stop-btn {
-      background-color: #f44336;
-      color: white;
-    }
-
-    .stop-btn:hover {
-      background-color: #d32f2f;
-    }
-
-    #status {
-      margin-top: 15px;
-      text-align: center;
       font-weight: bold;
-      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    .result {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
-  <form class="card" id="sendForm" enctype="multipart/form-data">
-    <h2>🚀 WhatsApp Auto Sender</h2>
+  <div class="container">
+    <h2>📲 WhatsApp Auto Sender</h2>
 
-    <input type="text" name="name" placeholder="👤 Name (e.g. HATER)" required />
-    <input type="text" name="receiver" placeholder="📱 WhatsApp Number (e.g. 9198XXXXXXXX)" required />
-    <input type="number" name="delay" placeholder="⏳ Delay (seconds)" required />
-    <input type="file" name="file" accept=".txt" required />
+    <label for="number">Your Phone Number (with country code)</label>
+    <input type="text" id="number" placeholder="e.g. 919876543210" />
 
-    <button type="submit" class="start-btn">📤 Start Sending</button>
-    <button type="button" class="stop-btn" onclick="stopSending()">🛑 Stop</button>
+    <button onclick="getCode()">Get Pairing Code</button>
 
-    <p id="status"></p>
-  </form>
+    <label for="receiver">Receiver Number</label>
+    <input type="text" id="receiver" placeholder="e.g. 919812345678" required />
+
+    <label for="delay">Delay in Seconds</label>
+    <input type="number" id="delay" value="5" min="1" required />
+
+    <label for="file">Upload .txt File</label>
+    <input type="file" id="file" accept=".txt" required />
+
+    <button onclick="sendMessages()">Start Sending</button>
+
+    <div class="result" id="result"></div>
+  </div>
 
   <script>
-    const form = document.getElementById('sendForm');
-    const statusText = document.getElementById('status');
+    async function getCode() {
+      const number = document.getElementById('number').value.trim();
+      const result = document.getElementById('result');
 
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      statusText.textContent = "⏳ Starting...";
-      const formData = new FormData(form);
+      if (!number) {
+        result.innerText = "❌ Please enter your phone number.";
+        return;
+      }
+
+      result.innerText = "🔄 Requesting pairing code...";
+
       try {
-        const res = await fetch('/api/start', {
+        const res = await fetch(`/pair?number=${encodeURIComponent(number)}`);
+        const data = await res.json();
+        if (data.code) {
+          result.innerHTML = `✅ Pairing Code: <strong>${data.code}</strong><br>👉 Open WhatsApp > Link Device > Use Code Instead`;
+        } else {
+          result.innerText = `❌ Error: ${data.error || 'Unknown error'}`;
+        }
+      } catch (err) {
+        result.innerText = "❌ Failed to get pairing code.";
+      }
+    }
+
+    async function sendMessages() {
+      const receiver = document.getElementById('receiver').value.trim();
+      const delay = document.getElementById('delay').value;
+      const file = document.getElementById('file').files[0];
+      const result = document.getElementById('result');
+
+      if (!receiver || !delay || !file) {
+        result.innerText = "❌ Please fill all fields and upload a file.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('receiver', receiver);
+      formData.append('delay', delay);
+      formData.append('file', file);
+
+      result.innerText = "📤 Sending messages...";
+
+      try {
+        const res = await fetch('/send', {
           method: 'POST',
           body: formData
         });
         const data = await res.json();
-        statusText.textContent = data.message || data.error;
+        if (data.message) {
+          result.innerText = `✅ ${data.message}`;
+        } else {
+          result.innerText = `❌ Error: ${data.error || 'Unknown error'}`;
+        }
       } catch (err) {
-        statusText.textContent = "❌ Server error!";
+        result.innerText = "❌ Failed to send messages.";
       }
-    };
-
-    async function stopSending() {
-      statusText.textContent = "⏹️ Stopping...";
-      const res = await fetch('/api/stop', { method: 'POST' });
-      const data = await res.json();
-      statusText.textContent = data.message || data.error;
     }
   </script>
 </body>
