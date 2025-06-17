@@ -1,131 +1,154 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp Auto Sender</title>
+  <title>AADI - Instagram Server App</title>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      background: linear-gradient(to bottom right, #000000, #1f1f1f);
       color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1rem;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
     }
 
     h1 {
-      margin-top: 1rem;
-      font-size: 1.8rem;
-      color: #00ffd0;
+      animation: fadeInDown 1s ease-out;
+      font-size: 2em;
+      margin-bottom: 0.5em;
     }
 
-    #qr {
-      margin: 1rem 0;
-      border: 3px dashed #00ffd0;
-      padding: 10px;
-      background: #fff;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    .form-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
       width: 100%;
       max-width: 400px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0, 255, 208, 0.2);
+      animation: fadeInUp 1s ease-out;
     }
 
-    input[type="text"],
-    input[type="number"],
-    input[type="file"] {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-    }
-
-    button {
+    .form-container input, .form-container button {
+      width: 100%;
       padding: 12px;
-      font-size: 1rem;
+      margin: 10px 0;
       border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
+      border-radius: 10px;
+      font-size: 1em;
     }
 
-    .start {
-      background: #00ffd0;
-      color: black;
-    }
-
-    .stop {
-      background: red;
+    .form-container input {
+      background: #1c1c1c;
       color: white;
     }
 
-    #message {
-      margin-top: 15px;
-      font-size: 1rem;
+    .form-container button {
+      background: #00bfa5;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .form-container button:hover {
+      background: #00a18c;
+    }
+
+    #qrCode {
+      margin-top: 20px;
       text-align: center;
+      animation: fadeIn 2s ease-in;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>🟢 WhatsApp Auto Sender</h1>
+  <h1>📱 AADI - Instagram Server App</h1>
 
-  <div id="qr">Loading QR...</div>
+  <div class="form-container">
+    <form id="sendForm" enctype="multipart/form-data">
+      <input type="text" name="receiver" placeholder="Enter WhatsApp Number" required />
+      <input type="text" name="name" placeholder="Enter Name (e.g. HATER)" required />
+      <input type="number" name="delay" placeholder="Delay in seconds" required />
+      <input type="file" name="file" accept=".txt" required />
+      <button type="submit">🚀 Start Sending</button>
+    </form>
+    <form id="stopForm">
+      <button type="submit" style="background:#e53935;">🛑 Stop Sending</button>
+    </form>
+  </div>
 
-  <form id="sendForm">
-    <input type="text" name="receiver" placeholder="Receiver Number (e.g. 919876543210)" required />
-    <input type="number" name="delay" placeholder="Delay (seconds)" required />
-    <input type="file" name="file" accept=".txt" required />
-    <button type="submit" class="start">Start</button>
-  </form>
-
-  <button class="stop" onclick="stopSending()">Stop</button>
-
-  <div id="message"></div>
+  <div id="qrCode"></div>
 
   <script>
-    async function loadQR() {
+    async function fetchQR() {
       const res = await fetch('/api/qr');
       const data = await res.json();
-      const qrBox = document.getElementById('qr');
       if (data.qr) {
-        qrBox.innerHTML = `<img src="${data.qr}" width="200" />`;
+        document.getElementById('qrCode').innerHTML = `<img src="${data.qr}" alt="QR Code" width="250" height="250" />`;
       } else {
-        qrBox.innerText = data.message;
-        setTimeout(loadQR, 2000);
+        document.getElementById('qrCode').innerText = data.message;
       }
     }
 
-    loadQR();
+    fetchQR();
+    setInterval(fetchQR, 5000);
 
     document.getElementById('sendForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
+      const formData = new FormData(e.target);
       const res = await fetch('/api/start', {
         method: 'POST',
         body: formData
       });
       const data = await res.json();
-      document.getElementById('message').innerText = data.message || data.error;
+      alert(data.message || data.error);
     });
 
-    async function stopSending() {
+    document.getElementById('stopForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const res = await fetch('/api/stop', { method: 'POST' });
       const data = await res.json();
-      document.getElementById('message').innerText = data.message;
-    }
+      alert(data.message);
+    });
   </script>
 </body>
-</html>
+        </html>
+                                                                        
