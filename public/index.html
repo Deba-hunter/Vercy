@@ -2,156 +2,145 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aadi WhatsApp server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aadi Wp Server</title>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #000;
-      color: #0f0;
+      background-color: #0d0d0d;
+      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
       padding: 20px;
     }
 
     h1 {
-      font-size: 2em;
-      text-align: center;
-      animation: glow 2s ease-in-out infinite alternate;
+      color: #00ff99;
+      text-shadow: 0 0 10px #00ff99;
+      animation: flicker 1.5s infinite;
     }
 
-    @keyframes glow {
-      from {
-        text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
-      }
-      to {
-        text-shadow: 0 0 20px #0f0, 0 0 30px #0f0;
-      }
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
     }
 
     form {
-      background: #111;
-      padding: 20px;
-      border-radius: 15px;
       width: 100%;
       max-width: 400px;
-      box-shadow: 0 0 20px #0f0;
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px #00ffcc50;
     }
 
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-
-    input, button {
+    input, select {
       width: 100%;
-      padding: 10px;
-      margin-top: 5px;
+      margin: 10px 0;
+      padding: 12px;
       border: none;
-      border-radius: 8px;
-      font-size: 1em;
+      border-radius: 10px;
+      background: #333;
+      color: #fff;
+      font-size: 16px;
     }
 
-    input {
-      background: #222;
-      color: #0f0;
+    input[type="file"] {
+      background: none;
     }
 
     button {
-      background: #0f0;
-      color: #000;
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      font-size: 16px;
+      background: linear-gradient(135deg, #00ffcc, #0099ff);
+      border: none;
+      border-radius: 10px;
+      color: black;
+      font-weight: bold;
       cursor: pointer;
-      transition: transform 0.2s ease;
+      transition: 0.3s;
     }
 
     button:hover {
-      transform: scale(1.05);
+      opacity: 0.85;
     }
 
-    .btn-stop {
-      background-color: red;
-      color: white;
-      margin-top: 10px;
-    }
-
-    .qr-container {
-      margin-top: 20px;
+    #qr-box {
+      margin: 20px 0;
       text-align: center;
     }
 
-    .qr-container img {
-      border: 2px solid #0f0;
-      border-radius: 10px;
-      max-width: 100%;
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #00ffaa;
+    }
+
+    footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <h1>🚀 WhatsApp Auto Sender</h1>
+  <h1>Aadi Wp Server 🚀</h1>
 
-  <form id="msgForm">
-    <label for="name">Your Name</label>
-    <input type="text" id="name" name="name" required />
+  <div id="qr-box">
+    <p>Loading QR...</p>
+    <img id="qr-img" src="" alt="Scan QR to login" style="width: 100%; max-width: 300px; display: none;" />
+  </div>
 
-    <label for="receiver">Receiver Number</label>
-    <input type="text" id="receiver" name="receiver" placeholder="e.g. 919876543210" required />
-
-    <label for="delay">Delay (in seconds)</label>
-    <input type="number" id="delay" name="delay" placeholder="Default is 2" />
-
-    <label for="file">Optional .txt File</label>
-    <input type="file" id="file" name="file" accept=".txt" />
-
-    <button type="submit">🚀 Start Sending</button>
-    <button type="button" class="btn-stop" onclick="stopSending()">🛑 Stop Sending</button>
+  <form id="sender-form" enctype="multipart/form-data">
+    <input type="text" name="name" placeholder="Haters Name" required />
+    <input type="text" name="receiver" placeholder="Receiver Number (with country code)" required />
+    <input type="number" name="delay" placeholder="Delay in seconds" min="1" required />
+    <input type="file" name="file" accept=".txt" required />
+    <button type="submit">Start Sending</button>
+    <button type="button" onclick="stopSending()">🛑 Stop</button>
   </form>
 
-  <div class="qr-container" id="qrContainer"></div>
+  <div id="status"></div>
+
+  <footer>Made by Aadi ✨</footer>
 
   <script>
-    async function loadQR() {
+    async function fetchQR() {
       const res = await fetch('/api/qr');
       const data = await res.json();
-      const container = document.getElementById('qrContainer');
-      container.innerHTML = '';
       if (data.qr) {
-        const img = document.createElement('img');
-        img.src = data.qr;
-        container.appendChild(img);
+        document.getElementById('qr-img').src = data.qr;
+        document.getElementById('qr-img').style.display = 'block';
+        document.querySelector('#qr-box p').style.display = 'none';
       } else {
-        container.innerHTML = `<p>${data.message}</p>`;
+        document.querySelector('#qr-box p').innerText = data.message;
       }
     }
 
-    setInterval(loadQR, 3000); // auto-refresh QR every 3 sec
+    fetchQR();
+    setInterval(fetchQR, 5000);
 
-    document.getElementById('msgForm').addEventListener('submit', async function (e) {
+    document.getElementById('sender-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-
-      const form = document.getElementById('msgForm');
-      const formData = new FormData(form);
-
+      const formData = new FormData(this);
       const res = await fetch('/api/start', {
         method: 'POST',
-        body: formData,
+        body: formData
       });
-
       const result = await res.json();
-      alert(result.message || result.error);
+      document.getElementById('status').innerText = result.message || result.error;
     });
 
     async function stopSending() {
-      const res = await fetch('/api/stop', {
-        method: 'POST',
-      });
+      const res = await fetch('/api/stop', { method: 'POST' });
       const result = await res.json();
-      alert(result.message);
+      document.getElementById('status').innerText = result.message;
     }
   </script>
 </body>
-</html>
+  </html>
+  
