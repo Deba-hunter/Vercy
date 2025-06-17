@@ -1,4 +1,4 @@
-// ✅ Multi-Number WhatsApp Serverr (Baileys)
+// ✅ WhatsApp Multi-Number Sender (Render Ready)
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -15,10 +15,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const sessionFolder = path.join(__dirname, 'session');
 
-app.use(express.json());
-app.use(express.static('public'));
-
 if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 
 let globalSocket = null;
 let qrData = null;
@@ -35,7 +35,7 @@ async function startSocket() {
     version,
     auth: state,
     printQRInTerminal: false,
-    browser: ['Aadi Server', 'Chrome', '1.0'],
+    browser: ['RenderBot', 'Chrome', '1.0'],
     getMessage: async () => ({ conversation: "hello" })
   });
 
@@ -67,7 +67,6 @@ async function startSocket() {
 
 startSocket();
 
-// Get QR API
 app.get('/api/qr', async (req, res) => {
   if (isReady) return res.json({ message: '✅ Already authenticated!' });
   if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
@@ -75,7 +74,6 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrImage });
 });
 
-// Start Sending
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
@@ -130,7 +128,6 @@ app.post('/api/start', (req, res) => {
   });
 });
 
-// Stop Sending
 app.post('/api/stop', (req, res) => {
   isLooping = false;
   currentLoop = null;
