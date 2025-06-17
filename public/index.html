@@ -100,7 +100,7 @@
 
   <form id="sendForm" enctype="multipart/form-data">
     <label>Your Name:</label>
-    <input type="text" name="name" required placeholder="Haters" />
+    <input type="text" name="name" required placeholder="Haters / Sir / Bro" />
 
     <label>Receiver Number(s):</label>
     <input type="text" name="receiver" required placeholder="Use comma (,) for multiple" />
@@ -111,11 +111,9 @@
     <label>Message File (.txt):</label>
     <input type="file" name="file" accept=".txt" required />
 
-    <button type="submit">🚀 Start Sending</button>
-    <button type="button" onclick="stopSending()">🛑 Stop Sending</button>
-  </form>
+     <button class="stop" onclick="stopSending()">Stop</button>
 
-   <div id="message"></div>
+     <div id="message"></div>
 
   <script>
     async function loadQR() {
@@ -152,4 +150,5 @@
     }
   </script>
 </body>
-</html>
+  </html>
+  
