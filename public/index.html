@@ -3,152 +3,140 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AADI - Instagram Server App</title>
+  <title>📲 WhatsApp Auto Sender</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #000000, #1f1f1f);
-      color: white;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #43cea2, #185a9d);
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
-      overflow-x: hidden;
-    }
-
-    h1 {
-      animation: fadeInDown 1s ease-out;
-      font-size: 2em;
-      margin-bottom: 0.5em;
-    }
-
-    .form-container {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-      width: 100%;
-      max-width: 400px;
-      animation: fadeInUp 1s ease-out;
-    }
-
-    .form-container input, .form-container button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 10px;
-      font-size: 1em;
-    }
-
-    .form-container input {
-      background: #1c1c1c;
-      color: white;
-    }
-
-    .form-container button {
-      background: #00bfa5;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s;
-    }
-
-    .form-container button:hover {
-      background: #00a18c;
-    }
-
-    #qrCode {
-      margin-top: 20px;
-      text-align: center;
-      animation: fadeIn 2s ease-in;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes fadeInDown {
-      from {
-        opacity: 0;
-        transform: translateY(-30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      animation: fadeIn 1s ease-in-out;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .card {
+      background: white;
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      animation: slideUp 0.8s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #185a9d;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .start-btn {
+      background-color: #43cea2;
+      color: white;
+    }
+
+    .start-btn:hover {
+      background-color: #2fb089;
+    }
+
+    .stop-btn {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .stop-btn:hover {
+      background-color: #d32f2f;
+    }
+
+    #status {
+      margin-top: 15px;
+      text-align: center;
+      font-weight: bold;
+      color: white;
     }
   </style>
 </head>
 <body>
-  <h1>📱 AADI - Instagram Server App</h1>
+  <form class="card" id="sendForm" enctype="multipart/form-data">
+    <h2>🚀 WhatsApp Auto Sender</h2>
 
-  <div class="form-container">
-    <form id="sendForm" enctype="multipart/form-data">
-      <input type="text" name="receiver" placeholder="Enter WhatsApp Number" required />
-      <input type="text" name="name" placeholder="Enter Name (e.g. HATER)" required />
-      <input type="number" name="delay" placeholder="Delay in seconds" required />
-      <input type="file" name="file" accept=".txt" required />
-      <button type="submit">🚀 Start Sending</button>
-    </form>
-    <form id="stopForm">
-      <button type="submit" style="background:#e53935;">🛑 Stop Sending</button>
-    </form>
-  </div>
+    <input type="text" name="name" placeholder="👤 Name (e.g. HATER)" required />
+    <input type="text" name="receiver" placeholder="📱 WhatsApp Number (e.g. 9198XXXXXXXX)" required />
+    <input type="number" name="delay" placeholder="⏳ Delay (seconds)" required />
+    <input type="file" name="file" accept=".txt" required />
 
-  <div id="qrCode"></div>
+    <button type="submit" class="start-btn">📤 Start Sending</button>
+    <button type="button" class="stop-btn" onclick="stopSending()">🛑 Stop</button>
+
+    <p id="status"></p>
+  </form>
 
   <script>
-    async function fetchQR() {
-      const res = await fetch('/api/qr');
-      const data = await res.json();
-      if (data.qr) {
-        document.getElementById('qrCode').innerHTML = `<img src="${data.qr}" alt="QR Code" width="250" height="250" />`;
-      } else {
-        document.getElementById('qrCode').innerText = data.message;
+    const form = document.getElementById('sendForm');
+    const statusText = document.getElementById('status');
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      statusText.textContent = "⏳ Starting...";
+      const formData = new FormData(form);
+      try {
+        const res = await fetch('/api/start', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        statusText.textContent = data.message || data.error;
+      } catch (err) {
+        statusText.textContent = "❌ Server error!";
       }
-    }
+    };
 
-    fetchQR();
-    setInterval(fetchQR, 5000);
-
-    document.getElementById('sendForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const res = await fetch('/api/start', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      alert(data.message || data.error);
-    });
-
-    document.getElementById('stopForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    async function stopSending() {
+      statusText.textContent = "⏹️ Stopping...";
       const res = await fetch('/api/stop', { method: 'POST' });
       const data = await res.json();
-      alert(data.message);
-    });
+      statusText.textContent = data.message || data.error;
+    }
   </script>
 </body>
-        </html>
-                                                                        
+</html>
