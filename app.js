@@ -25,6 +25,7 @@ let isReady = false;
 let isLooping = false;
 let currentLoop = null;
 
+// Start WhatsApp Socket
 async function startSocket() {
   if (globalSocket) return;
   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
@@ -66,7 +67,7 @@ async function startSocket() {
 
 startSocket();
 
-// API: Get QR
+// Get QR Code
 app.get('/api/qr', async (req, res) => {
   if (isReady) return res.json({ message: '✅ Already authenticated!' });
   if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
@@ -74,21 +75,21 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrImage });
 });
 
-// API: Start Sending Messages
+// Start Sending Messages
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Form parse error' });
 
-    let { receiver, delay, name } = fields;
-    delay = parseInt(delay) || 2;
+    let receiver = Array.isArray(fields.receiver) ? fields.receiver[0] : fields.receiver;
+    let delay = parseInt(fields.delay) || 2;
+    let name = Array.isArray(fields.name) ? fields.name[0] : fields.name;
 
     if (!receiver) return res.status(400).json({ error: '❌ Receiver is required' });
 
     const receivers = receiver.split(',').map(num => num.trim()).filter(num => /^\d{10,15}$/.test(num));
     if (receivers.length === 0) return res.status(400).json({ error: '❌ Invalid phone numbers' });
 
-    name = Array.isArray(name) ? name[0] : name;
     name = typeof name === 'string' ? name.trim() : '';
     if (!name) return res.status(400).json({ error: '❌ Name is required' });
 
@@ -127,7 +128,7 @@ app.post('/api/start', (req, res) => {
   });
 });
 
-// API: Stop
+// Stop Sending
 app.post('/api/stop', (req, res) => {
   isLooping = false;
   currentLoop = null;
@@ -137,4 +138,4 @@ app.post('/api/stop', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-             
+                               
