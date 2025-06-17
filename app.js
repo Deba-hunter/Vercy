@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const sessionFolder = path.join(__dirname, 'session');
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('public')); // HTML frontend from /public
 
 if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
 
@@ -108,14 +108,18 @@ app.post('/api/start', (req, res) => {
       while (isLooping) {
         for (const line of lines) {
           if (!isLooping) break;
-          const finalMsg = `${name.trim()} ${line}`;
-          await sock.sendMessage(jid, { text: finalMsg });
+          const finalMessage = `${name.trim()} ${line}`;
+          await sock.sendMessage(jid, { text: finalMessage });
           await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
         }
       }
     };
 
-    currentLoop = sendMessages();
+    currentLoop = sendMessages().catch(err => {
+      console.error('❌ Message loop error:', err);
+      isLooping = false;
+    });
+
     return res.json({ message: `✅ Started sending messages to ${receiver}` });
   });
 });
@@ -130,4 +134,3 @@ app.post('/api/stop', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-  
