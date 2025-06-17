@@ -115,6 +115,8 @@
     <button type="button" onclick="stopSending()">🛑 Stop Sending</button>
   </form>
 
+   <div id="message"></div>
+
   <script>
     async function loadQR() {
       const res = await fetch('/api/qr');
@@ -150,5 +152,4 @@
     }
   </script>
 </body>
-                                            </html>
-      
+</html>
