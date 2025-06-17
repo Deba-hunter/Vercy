@@ -1,4 +1,3 @@
-// ✅ WhatsApp Multi-Number Sender (Render Ready)
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -14,11 +13,9 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 const sessionFolder = path.join(__dirname, 'session');
-
 if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 let globalSocket = null;
 let qrData = null;
