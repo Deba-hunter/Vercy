@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WhatsApp Auto Sender</title>
+  <title>WhatsApp Sender</title>
   <style>
     body {
-      background: linear-gradient(to right, #232526, #414345);
-      color: white;
+      margin: 0;
       font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #141E30, #243B55);
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1em;
+      padding: 2rem;
     }
     h1 {
-      margin-bottom: 0.5em;
-      color: #00ff95;
+      color: #00ffcc;
     }
     form {
       width: 100%;
@@ -24,39 +24,40 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      margin-top: 20px;
     }
     input, button {
-      padding: 12px;
+      padding: 10px;
+      border-radius: 8px;
       border: none;
-      border-radius: 10px;
       font-size: 1em;
     }
     button {
-      background-color: #00ff95;
-      color: black;
+      background-color: #00ffcc;
+      color: #000;
+      font-weight: bold;
       cursor: pointer;
     }
     #qr {
-      margin: 20px auto;
+      margin-top: 1rem;
       text-align: center;
     }
   </style>
 </head>
 <body>
   <h1>WhatsApp Auto Sender</h1>
-
   <div id="qr">⏳ Loading QR...</div>
 
   <form action="/api/start" method="POST" enctype="multipart/form-data">
-    <input type="text" name="receiver" placeholder="Numbers (comma separated)" required />
-    <input type="text" name="name" placeholder="Name prefix" required />
-    <input type="number" name="delay" placeholder="Delay (in seconds)" required />
+    <input type="text" name="receiver" placeholder="Receiver numbers (comma separated)" required />
+    <input type="text" name="name" placeholder="Your name or prefix" required />
+    <input type="number" name="delay" placeholder="Delay in seconds" required />
     <input type="file" name="file" accept=".txt" required />
     <button type="submit">Start Sending</button>
   </form>
 
-  <form action="/api/stop" method="POST" style="margin-top:10px;">
-    <button type="submit" style="background-color:red;color:white;">Stop Sending</button>
+  <form action="/api/stop" method="POST" style="margin-top: 10px;">
+    <button type="submit" style="background-color: red; color: white;">Stop Sending</button>
   </form>
 
   <script>
@@ -64,11 +65,11 @@
       const res = await fetch('/api/qr');
       const data = await res.json();
       document.getElementById('qr').innerHTML = data.qr
-        ? `<img src="${data.qr}" width="250"/>`
+        ? `<img src="${data.qr}" width="250" />`
         : data.message;
     }
     loadQR();
-    setInterval(loadQR, 5000);
+    setInterval(loadQR, 4000);
   </script>
 </body>
 </html>
