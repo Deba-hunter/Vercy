@@ -1,91 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WhatsApp Auto Sender</title>
   <style>
-    body {
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      color: white;
+    }
+    body {
+      background: linear-gradient(to right, #000000, #1c1c1c);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: center;
       align-items: center;
-      justify-content: flex-start;
-      padding: 2rem;
-      min-height: 100vh;
+      animation: fadeIn 1s ease;
     }
-    h2 {
-      margin-bottom: 1rem;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #0f0;
+      font-size: 1.8em;
+      text-align: center;
+      animation: pulse 1.5s infinite alternate;
+    }
+    @keyframes pulse {
+      from { color: #0f0; }
+      to { color: #00f0ff; }
     }
     form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
       width: 100%;
       max-width: 400px;
+      background: #111;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
     }
-    input, textarea, button {
-      padding: 0.8rem;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.95em;
     }
     input, textarea {
       width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #222;
+      color: #fff;
+    }
+    input[type="file"] {
+      padding: 5px;
     }
     button {
-      background-color: #00c853;
-      color: white;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #0f0;
+      color: #000;
+      font-weight: bold;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: 0.3s ease;
     }
     button:hover {
-      background-color: #009624;
+      background: #00f0ff;
+      color: #fff;
     }
-    #qr {
+    #qr-img {
       margin-top: 20px;
       text-align: center;
     }
-    #qr img {
-      max-width: 100%;
+    #qr-img img {
+      width: 220px;
       height: auto;
+    }
+    .status {
+      margin: 15px 0;
+      font-size: 1em;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h2>📤 WhatsApp Auto Sender</h2>
+  <h1>📤 WhatsApp Auto Sender</h1>
+  <form id="sender-form">
+    <label>Your Name</label>
+    <input type="text" name="name" required placeholder="e.g. Debasish" />
 
-  <form id="msgForm">
-    <input type="text" name="name" placeholder="Your Name (e.g. Debasish)" required />
-    <input type="text" name="receiver" placeholder="Receiver numbers comma-separated" required />
-    <input type="number" name="delay" placeholder="Delay in seconds" required />
+    <label>Receiver Number(s) (comma separated)</label>
+    <input type="text" name="receiver" required placeholder="e.g. 9198XXXXXXXX,9199XXXXXXXX" />
+
+    <label>Delay (seconds)</label>
+    <input type="number" name="delay" min="1" value="2" />
+
+    <label>Upload .txt File</label>
     <input type="file" name="file" accept=".txt" required />
-    <button type="submit">▶️ Start Sending</button>
-    <button type="button" onclick="stopSending()">🛑 Stop</button>
+
+    <button type="submit">🚀 Start Sending</button>
   </form>
 
-  <div id="qr"></div>
-  <div id="status" style="margin-top: 1rem;"></div>
+  <div id="qr-img"></div>
+  <div class="status" id="status"></div>
 
   <script>
-    async function fetchQR() {
+    const form = document.getElementById('sender-form');
+    const qrImg = document.getElementById('qr-img');
+    const statusBox = document.getElementById('status');
+
+    async function getQR() {
       const res = await fetch('/api/qr');
       const data = await res.json();
-      const qrDiv = document.getElementById('qr');
       if (data.qr) {
-        qrDiv.innerHTML = `<img src="${data.qr}" alt="QR Code"/>`;
+        qrImg.innerHTML = `<img src="${data.qr}" alt="Scan QR" />`;
+        statusBox.innerText = '📱 Scan QR from WhatsApp > Link Device';
       } else {
-        qrDiv.innerHTML = `<p>${data.message}</p>`;
+        statusBox.innerText = data.message || 'Waiting...';
+        qrImg.innerHTML = '';
       }
     }
 
-    fetchQR();
-    setInterval(fetchQR, 5000);
+    getQR();
+    setInterval(getQR, 5000);
 
-    const form = document.getElementById('msgForm');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
@@ -93,15 +140,9 @@
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
-      document.getElementById('status').innerText = data.message || data.error;
+      const result = await res.json();
+      statusBox.innerText = result.message || result.error;
     });
-
-    async function stopSending() {
-      const res = await fetch('/api/stop', { method: 'POST' });
-      const data = await res.json();
-      document.getElementById('status').innerText = data.message || data.error;
-    }
   </script>
 </body>
 </html>
