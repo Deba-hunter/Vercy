@@ -5,154 +5,152 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WhatsApp Auto Sender</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 0;
-      background: linear-gradient(to right, #00c6ff, #0072ff);
-      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #000;
+      color: #0f0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 20px;
     }
 
-    .container {
-      background: rgba(0, 0, 0, 0.7);
-      padding: 2rem;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-
-    h2 {
+    h1 {
+      font-size: 2em;
       text-align: center;
-      margin-bottom: 1.5rem;
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
+      }
+      to {
+        text-shadow: 0 0 20px #0f0, 0 0 30px #0f0;
+      }
+    }
+
+    form {
+      background: #111;
+      padding: 20px;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 0 20px #0f0;
     }
 
     label {
       display: block;
-      margin: 10px 0 5px;
+      margin-top: 10px;
+      font-weight: bold;
     }
 
-    input, select, button {
+    input, button {
       width: 100%;
       padding: 10px;
+      margin-top: 5px;
       border: none;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-      font-size: 1rem;
+      border-radius: 8px;
+      font-size: 1em;
     }
 
-    input[type="file"] {
-      background: #fff;
-      color: #000;
+    input {
+      background: #222;
+      color: #0f0;
     }
 
     button {
-      background: #28a745;
-      color: white;
-      font-weight: bold;
+      background: #0f0;
+      color: #000;
       cursor: pointer;
-      transition: 0.3s;
+      transition: transform 0.2s ease;
     }
 
     button:hover {
-      background: #218838;
+      transform: scale(1.05);
     }
 
-    .result {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      word-break: break-word;
+    .btn-stop {
+      background-color: red;
+      color: white;
+      margin-top: 10px;
+    }
+
+    .qr-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .qr-container img {
+      border: 2px solid #0f0;
+      border-radius: 10px;
+      max-width: 100%;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📲 WhatsApp Auto Sender</h2>
+  <h1>🚀 WhatsApp Auto Sender</h1>
 
-    <label for="number">Your Phone Number (with country code)</label>
-    <input type="text" id="number" placeholder="e.g. 919876543210" />
-
-    <button onclick="getCode()">Get Pairing Code</button>
+  <form id="msgForm">
+    <label for="name">Your Name</label>
+    <input type="text" id="name" name="name" required />
 
     <label for="receiver">Receiver Number</label>
-    <input type="text" id="receiver" placeholder="e.g. 919812345678" required />
+    <input type="text" id="receiver" name="receiver" placeholder="e.g. 919876543210" required />
 
-    <label for="delay">Delay in Seconds</label>
-    <input type="number" id="delay" value="5" min="1" required />
+    <label for="delay">Delay (in seconds)</label>
+    <input type="number" id="delay" name="delay" placeholder="Default is 2" />
 
-    <label for="file">Upload .txt File</label>
-    <input type="file" id="file" accept=".txt" required />
+    <label for="file">Optional .txt File</label>
+    <input type="file" id="file" name="file" accept=".txt" />
 
-    <button onclick="sendMessages()">Start Sending</button>
+    <button type="submit">🚀 Start Sending</button>
+    <button type="button" class="btn-stop" onclick="stopSending()">🛑 Stop Sending</button>
+  </form>
 
-    <div class="result" id="result"></div>
-  </div>
+  <div class="qr-container" id="qrContainer"></div>
 
   <script>
-    async function getCode() {
-      const number = document.getElementById('number').value.trim();
-      const result = document.getElementById('result');
-
-      if (!number) {
-        result.innerText = "❌ Please enter your phone number.";
-        return;
-      }
-
-      result.innerText = "🔄 Requesting pairing code...";
-
-      try {
-        const res = await fetch(`/pair?number=${encodeURIComponent(number)}`);
-        const data = await res.json();
-        if (data.code) {
-          result.innerHTML = `✅ Pairing Code: <strong>${data.code}</strong><br>👉 Open WhatsApp > Link Device > Use Code Instead`;
-        } else {
-          result.innerText = `❌ Error: ${data.error || 'Unknown error'}`;
-        }
-      } catch (err) {
-        result.innerText = "❌ Failed to get pairing code.";
+    async function loadQR() {
+      const res = await fetch('/api/qr');
+      const data = await res.json();
+      const container = document.getElementById('qrContainer');
+      container.innerHTML = '';
+      if (data.qr) {
+        const img = document.createElement('img');
+        img.src = data.qr;
+        container.appendChild(img);
+      } else {
+        container.innerHTML = `<p>${data.message}</p>`;
       }
     }
 
-    async function sendMessages() {
-      const receiver = document.getElementById('receiver').value.trim();
-      const delay = document.getElementById('delay').value;
-      const file = document.getElementById('file').files[0];
-      const result = document.getElementById('result');
+    setInterval(loadQR, 3000); // auto-refresh QR every 3 sec
 
-      if (!receiver || !delay || !file) {
-        result.innerText = "❌ Please fill all fields and upload a file.";
-        return;
-      }
+    document.getElementById('msgForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
 
-      const formData = new FormData();
-      formData.append('receiver', receiver);
-      formData.append('delay', delay);
-      formData.append('file', file);
+      const form = document.getElementById('msgForm');
+      const formData = new FormData(form);
 
-      result.innerText = "📤 Sending messages...";
+      const res = await fetch('/api/start', {
+        method: 'POST',
+        body: formData,
+      });
 
-      try {
-        const res = await fetch('/send', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (data.message) {
-          result.innerText = `✅ ${data.message}`;
-        } else {
-          result.innerText = `❌ Error: ${data.error || 'Unknown error'}`;
-        }
-      } catch (err) {
-        result.innerText = "❌ Failed to send messages.";
-      }
+      const result = await res.json();
+      alert(result.message || result.error);
+    });
+
+    async function stopSending() {
+      const res = await fetch('/api/stop', {
+        method: 'POST',
+      });
+      const result = await res.json();
+      alert(result.message);
     }
   </script>
 </body>
