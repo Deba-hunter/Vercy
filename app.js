@@ -35,7 +35,7 @@ async function startSocket() {
     version,
     auth: state,
     printQRInTerminal: false,
-    browser: ['Aadi Server', 'Chrome', '1.0'],
+    browser: ['Bot', 'Chrome', '1.0'],
     getMessage: async () => ({ conversation: "hello" })
   });
 
@@ -67,7 +67,7 @@ async function startSocket() {
 
 startSocket();
 
-// GET QR Code
+// QR CODE API
 app.get('/api/qr', async (req, res) => {
   if (isReady) return res.json({ message: '✅ Already authenticated!' });
   if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
@@ -75,25 +75,25 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrImage });
 });
 
-// START message sending
+// START API
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Form parse error' });
 
-    const { receiver, delay } = fields;
-    const delaySec = parseInt(delay) || 2;
+    const receiver = (fields.receiver || "").toString().trim();
+    const name = (fields.name || "").toString().trim();
+    const delaySec = parseInt(fields.delay) || 2;
 
     if (!receiver) {
       return res.status(400).json({ error: '❌ Receiver required' });
     }
 
-    // ✅ Detect inbox or group
     let jid;
     if (/^\d{10,15}$/.test(receiver)) {
-      jid = receiver + '@s.whatsapp.net'; // Inbox
+      jid = receiver + '@s.whatsapp.net';
     } else if (receiver.endsWith('@g.us')) {
-      jid = receiver; // Group
+      jid = receiver;
     } else {
       return res.status(400).json({ error: '❌ Invalid receiver. Use phone number or group ID.' });
     }
@@ -110,13 +110,17 @@ app.post('/api/start', (req, res) => {
       .map(line => line.trim())
       .filter(Boolean);
 
-    if (lines.length === 0) return res.status(400).json({ error: '❌ File is empty.' });
+    const personalizedLines = lines.map(line => line.replace(/{name}/gi, name));
+
+    if (personalizedLines.length === 0) {
+      return res.status(400).json({ error: '❌ File is empty.' });
+    }
 
     isLooping = true;
 
     const sendMessages = async () => {
       while (isLooping) {
-        for (const line of lines) {
+        for (const line of personalizedLines) {
           if (!isLooping) break;
           await sock.sendMessage(jid, { text: line });
           await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
@@ -129,7 +133,7 @@ app.post('/api/start', (req, res) => {
   });
 });
 
-// STOP message sending
+// STOP API
 app.post('/api/stop', (req, res) => {
   isLooping = false;
   currentLoop = null;
@@ -139,4 +143,4 @@ app.post('/api/stop', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-  
+    
