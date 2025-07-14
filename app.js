@@ -1,3 +1,4 @@
+// app.js
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -15,12 +16,7 @@ const PORT = process.env.PORT || 3000;
 const sessionFolder = path.join(__dirname, 'session');
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // serve HTML/JS/CSS from public/
-
-// ✅ Add route to serve index.html directly
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+app.use(express.static('public'));
 
 if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
 
@@ -71,7 +67,7 @@ async function startSocket() {
 
 startSocket();
 
-// ✅ API: QR fetch
+// GET QR Code
 app.get('/api/qr', async (req, res) => {
   if (isReady) return res.json({ message: '✅ Already authenticated!' });
   if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
@@ -79,7 +75,7 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrImage });
 });
 
-// ✅ API: Start message loop
+// START message sending
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
@@ -88,23 +84,24 @@ app.post('/api/start', (req, res) => {
     const { receiver, delay } = fields;
     const delaySec = parseInt(delay) || 2;
 
-    if (!receiver || receiver.length < 5) {
-      return res.status(400).json({ error: '❌ Invalid WhatsApp receiver input' });
+    if (!receiver) {
+      return res.status(400).json({ error: '❌ Receiver required' });
+    }
+
+    // ✅ Detect inbox or group
+    let jid;
+    if (/^\d{10,15}$/.test(receiver)) {
+      jid = receiver + '@s.whatsapp.net'; // Inbox
+    } else if (receiver.endsWith('@g.us')) {
+      jid = receiver; // Group
+    } else {
+      return res.status(400).json({ error: '❌ Invalid receiver. Use phone number or group ID.' });
     }
 
     if (!files.file) return res.status(400).json({ error: '❌ File required' });
 
     const sock = globalSocket;
     if (!sock || !isReady) return res.status(400).json({ error: '❌ WhatsApp not connected' });
-
-    // ✅ Handle Inbox or Group
-    let jid = receiver;
-    if (!receiver.includes('@')) {
-      if (!/^\d{10,15}$/.test(receiver)) {
-        return res.status(400).json({ error: '❌ Invalid phone number' });
-      }
-      jid = receiver + '@s.whatsapp.net';
-    }
 
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
     const filePath = file.filepath || file.path;
@@ -132,7 +129,7 @@ app.post('/api/start', (req, res) => {
   });
 });
 
-// ✅ API: Stop message loop
+// STOP message sending
 app.post('/api/stop', (req, res) => {
   isLooping = false;
   currentLoop = null;
@@ -142,3 +139,4 @@ app.post('/api/stop', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+  
