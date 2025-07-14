@@ -1,19 +1,14 @@
 {
-  "name": "whatsapp-auto-sender",
-  "version": "1.0.0",
-  "description": "Send WhatsApp messages automatically using Baileys",
-  "main": "app.js",
-  "scripts": {
-    "start": "node app.js"
-  },
-  "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.18",
-    "express": "^4.18.2",
-    "formidable": "^3.5.0",
-    "qrcode": "^1.5.1"
-  },
-  "engines": {
-    "node": ">=16"
-  }
+  "name": "baileys-bot",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "formidable": "^3.5.4",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "qrcode": "^1.5.3"
+  }
 }
-  
