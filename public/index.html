@@ -1,176 +1,136 @@
+<!-- 🔥 Inside public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp Auto Sender</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      padding: 1rem;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #000000, #1c1c1c);
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    h1 {
-      color: #00ffcc;
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 2rem;
-    }
-
-    #qr {
-      margin: 1rem 0;
-      border: 2px dashed #00ffcc;
-      padding: 12px;
-      background: #1a1a1a;
-      border-radius: 10px;
-      text-align: center;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      background: #121212;
-      padding: 1.5rem;
-      border-radius: 15px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="file"] {
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      background: #222;
-      color: #fff;
-      font-size: 1rem;
-    }
-
-    button {
-      padding: 14px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 10px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .start {
-      background: #00ffcc;
-      color: black;
-    }
-
-    .stop {
-      background: crimson;
-      color: white;
-      margin-top: 12px;
-    }
-
-    #message, #log {
-      margin-top: 20px;
-      font-size: 1rem;
-      text-align: center;
-      color: #ffeb3b;
-      width: 100%;
-      max-width: 420px;
-    }
-
-    #log {
-      background: #1f1f1f;
-      padding: 12px;
-      border-radius: 10px;
-      margin-top: 10px;
-      max-height: 220px;
-      overflow-y: auto;
-      font-size: 0.85rem;
-      color: #ccc;
-    }
-
-    .info {
-      color: #aaa;
-      font-size: 0.9rem;
-      margin-bottom: 0.5rem;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WhatsApp Server</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #121212;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 0 12px rgba(0, 255, 170, 0.2);
+    }
+    h2 {
+      text-align: center;
+      color: #00ffa5;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background-color: #2c2c2c;
+      color: #00ffb7;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      background: linear-gradient(45deg, #00ffa5, #00c2ff);
+      color: #000;
+      transition: transform 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.03);
+    }
+    #qr-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    #status {
+      margin-top: 15px;
+      text-align: center;
+      color: #00ffa5;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>📲 WhatsApp Auto Sender</h1>
-  <div class="info">Send to group or individual. Format: 9198xxxxxxxx or 1203xxxx@g.us</div>
+  <div class="container">
+    <h2>📤 WhatsApp Server</h2>
 
-  <div id="qr">🔄 QR Loading...</div>
+    <form id="sendForm">
+      <label>👤 Receiver Name</label>
+      <input type="text" name="name" placeholder="e.g. Debasish" required>
 
-  <form id="sendForm">
-    <input type="text" name="name" placeholder="Your Name (for personalization)" required />
-    <input type="text" name="receiver" placeholder="Receiver (number or group ID)" required />
-    <input type="number" name="delay" placeholder="Delay in seconds" required />
-    <input type="file" name="file" accept=".txt" required />
-    <button type="submit" class="start">🚀 Start</button>
-  </form>
+      <label>📱 Receiver Number or Group ID</label>
+      <input type="text" name="receiver" placeholder="e.g. 919876543210 or 1203...@g.us" required>
 
-  <button class="stop" onclick="stopSending()">🛑 Stop</button>
+      <label>⏱ Delay (Seconds)</label>
+      <input type="number" name="delay" value="2" min="1">
 
-  <div id="message">Status: Idle...</div>
-  <div id="log"></div>
+      <label>📄 Message File (.txt)</label>
+      <input type="file" name="file" accept=".txt" required>
 
-  <script>
-    async function loadQR() {
-      const res = await fetch('/api/qr');
-      const data = await res.json();
-      const qrBox = document.getElementById('qr');
-      if (data.qr) {
-        qrBox.innerHTML = `<img src="${data.qr}" width="220" alt="QR Code">`;
-        document.getElementById('message').innerText = '📷 Scan QR with WhatsApp to connect';
-      } else {
-        qrBox.innerText = data.message;
-        document.getElementById('message').innerText = data.message;
-        setTimeout(loadQR, 3000);
-      }
-    }
-    loadQR();
+      <button type="submit">🚀 Start Sending</button>
+    </form>
 
-    document.getElementById('sendForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      document.getElementById('message').innerText = '⏳ Starting...';
-      try {
-        const res = await fetch('/api/start', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        document.getElementById('message').innerText = data.message || data.error;
-        addLog(`START: ${data.message}`);
-      } catch {
-        document.getElementById('message').innerText = '❌ Failed to start';
-        addLog('ERROR: Failed to submit');
-      }
-    });
+    <button onclick="stopSending()">🛑 Stop Sending</button>
 
-    async function stopSending() {
-      const res = await fetch('/api/stop', { method: 'POST' });
-      const data = await res.json();
-      document.getElementById('message').innerText = data.message;
-      addLog(`STOP: ${data.message}`);
-    }
+    <div id="qr-container"></div>
+    <div id="status">⏳ Checking connection...</div>
+  </div>
 
-    function addLog(msg) {
-      const log = document.getElementById('log');
-      const time = new Date().toLocaleTimeString();
-      log.innerHTML = `<div>[${time}] ${msg}</div>` + log.innerHTML;
-    }
-  </script>
+  <script>
+    async function loadQR() {
+      const res = await fetch('/api/qr');
+      const data = await res.json();
+      if (data.qr) {
+        document.getElementById('qr-container').innerHTML = `<img src="${data.qr}" width="250">`;
+        document.getElementById('status').textContent = "📲 Scan the QR to connect";
+      } else {
+        document.getElementById('status').textContent = data.message;
+        document.getElementById('qr-container').innerHTML = "";
+      }
+    }
+
+    setInterval(loadQR, 3000);
+    loadQR();
+
+    document.getElementById('sendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      const res = await fetch('/api/start', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      document.getElementById('status').textContent = data.message || data.error;
+    });
+
+    async function stopSending() {
+      const res = await fetch('/api/stop', { method: 'POST' });
+      const data = await res.json();
+      document.getElementById('status').textContent = data.message;
+    }
+  </script>
 </body>
 </html>
