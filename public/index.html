@@ -1,161 +1,145 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WhatsApp Server</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0d0d0d;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const formidable = require('formidable');
+const qrcode = require('qrcode');
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  fetchLatestBaileysVersion,
+  DisconnectReason
+} = require('@whiskeysockets/baileys');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const sessionFolder = path.join(__dirname, 'session');
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public'))); // serve HTML/JS/CSS from public/
+
+// ✅ Add route to serve index.html directly
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
+
+let globalSocket = null;
+let qrData = null;
+let isReady = false;
+let isLooping = false;
+let currentLoop = null;
+
+async function startSocket() {
+  if (globalSocket) return;
+  const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+  const { version } = await fetchLatestBaileysVersion();
+
+  const sock = makeWASocket({
+    version,
+    auth: state,
+    printQRInTerminal: false,
+    browser: ['Aadi Server', 'Chrome', '1.0'],
+    getMessage: async () => ({ conversation: "hello" })
+  });
+
+  sock.ev.on('creds.update', saveCreds);
+
+  sock.ev.on('connection.update', async (update) => {
+    const { qr, connection, lastDisconnect } = update;
+    if (qr) {
+      qrData = qr;
+      isReady = false;
     }
-
-    h1 {
-      color: #00ff99;
-      text-shadow: 0 0 10px #00ff99;
-      animation: flicker 1.5s infinite;
+    if (connection === 'open') {
+      isReady = true;
+      qrData = null;
+      console.log('✅ WhatsApp Connected!');
     }
-
-    @keyframes flicker {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-
-    form {
-      width: 100%;
-      max-width: 400px;
-      background: #1a1a1a;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px #00ffcc50;
-    }
-
-    input, select {
-      width: 100%;
-      margin: 10px 0;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      background: #333;
-      color: #fff;
-      font-size: 16px;
-    }
-
-    input[type="file"] {
-      background: none;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      font-size: 16px;
-      background: linear-gradient(135deg, #00ffcc, #0099ff);
-      border: none;
-      border-radius: 10px;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      opacity: 0.85;
-    }
-
-    #qr-box {
-      margin: 20px 0;
-      text-align: center;
-    }
-
-    #status {
-      margin-top: 15px;
-      padding: 10px;
-      background: #111;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #00ffaa40;
-      font-size: 14px;
-      color: #00ffaa;
-    }
-
-    footer {
-      margin-top: 20px;
-      font-size: 12px;
-      color: #555;
-    }
-  </style>
-</head>
-<body>
-  <h1>WhatsApp Server 🚀</h1>
-
-  <div id="qr-box">
-    <p>Loading QR...</p>
-    <img id="qr-img" src="" alt="Scan QR to login" style="width: 100%; max-width: 300px; display: none;" />
-  </div>
-
-  <form id="sender-form" enctype="multipart/form-data">
-    <input type="text" name="name" placeholder="Haters Name" required />
-    <input type="text" name="receiver" placeholder="Receiver Number (with country code)" required />
-    <input type="number" name="delay" placeholder="Delay in seconds" min="1" required />
-    <input type="file" name="file" accept=".txt" required />
-    <button type="submit">▶️ Start Sending</button>
-    <button type="button" id="stopBtn">🛑 Stop</button>
-  </form>
-
-  <div id="status">Status: Waiting for QR...</div>
-
-  <footer>Made by Aadi ✨</footer>
-
-  <script>
-    const statusBox = document.getElementById('status');
-
-    async function fetchQR() {
-      const res = await fetch('/api/qr');
-      const data = await res.json();
-      if (data.qr) {
-        document.getElementById('qr-img').src = data.qr;
-        document.getElementById('qr-img').style.display = 'block';
-        document.querySelector('#qr-box p').style.display = 'none';
-      } else {
-        document.querySelector('#qr-box p').innerText = data.message;
+    if (connection === 'close') {
+      isReady = false;
+      qrData = null;
+      globalSocket = null;
+      if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
+        setTimeout(startSocket, 3000);
       }
     }
+  });
 
-    fetchQR();
-    setInterval(fetchQR, 5000);
+  globalSocket = sock;
+}
 
-    document.getElementById('sender-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      statusBox.innerText = "⏳ Starting...";
-      const formData = new FormData(this);
-      try {
-        const res = await fetch('/api/start', {
-          method: 'POST',
-          body: formData
-        });
-        const result = await res.json();
-        statusBox.innerText = result.message || result.error || '⚠️ Unexpected response';
-      } catch (err) {
-        statusBox.innerText = '❌ Failed to start sending: ' + err.message;
+startSocket();
+
+// ✅ API: QR fetch
+app.get('/api/qr', async (req, res) => {
+  if (isReady) return res.json({ message: '✅ Already authenticated!' });
+  if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
+  const qrImage = await qrcode.toDataURL(qrData);
+  res.json({ qr: qrImage });
+});
+
+// ✅ API: Start message loop
+app.post('/api/start', (req, res) => {
+  const form = new formidable.IncomingForm();
+  form.parse(req, async (err, fields, files) => {
+    if (err) return res.status(500).json({ error: 'Form parse error' });
+
+    const { receiver, delay } = fields;
+    const delaySec = parseInt(delay) || 2;
+
+    if (!receiver || receiver.length < 5) {
+      return res.status(400).json({ error: '❌ Invalid WhatsApp receiver input' });
+    }
+
+    if (!files.file) return res.status(400).json({ error: '❌ File required' });
+
+    const sock = globalSocket;
+    if (!sock || !isReady) return res.status(400).json({ error: '❌ WhatsApp not connected' });
+
+    // ✅ Handle Inbox or Group
+    let jid = receiver;
+    if (!receiver.includes('@')) {
+      if (!/^\d{10,15}$/.test(receiver)) {
+        return res.status(400).json({ error: '❌ Invalid phone number' });
       }
-    });
+      jid = receiver + '@s.whatsapp.net';
+    }
 
-    document.getElementById('stopBtn').addEventListener('click', async () => {
-      statusBox.innerText = "⏳ Stopping...";
-      try {
-        const res = await fetch('/api/stop', { method: 'POST' });
-        const result = await res.json();
-        statusBox.innerText = result.message || result.error || '⚠️ Stop failed';
-      } catch (err) {
-        statusBox.innerText = '❌ Failed to stop: ' + err.message;
+    const file = Array.isArray(files.file) ? files.file[0] : files.file;
+    const filePath = file.filepath || file.path;
+    const lines = fs.readFileSync(filePath, 'utf-8')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) return res.status(400).json({ error: '❌ File is empty.' });
+
+    isLooping = true;
+
+    const sendMessages = async () => {
+      while (isLooping) {
+        for (const line of lines) {
+          if (!isLooping) break;
+          await sock.sendMessage(jid, { text: line });
+          await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+        }
       }
-    });
-  </script>
-</body>
-</html>
+    };
+
+    currentLoop = sendMessages();
+    return res.json({ message: `✅ Started sending messages to ${receiver}` });
+  });
+});
+
+// ✅ API: Stop message loop
+app.post('/api/stop', (req, res) => {
+  isLooping = false;
+  currentLoop = null;
+  res.json({ message: '🛑 Message sending stopped.' });
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+      
