@@ -1,3 +1,4 @@
+// app.js
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -24,6 +25,7 @@ let qrData = null;
 let isReady = false;
 let isLooping = false;
 let currentLoop = null;
+let messageLogs = []; // ✅ Logs storage
 
 async function startSocket() {
   if (globalSocket) return;
@@ -34,7 +36,7 @@ async function startSocket() {
     version,
     auth: state,
     printQRInTerminal: false,
-    browser: ['Bot', 'Chrome', '1.0'],
+    browser: ['Aadi Server', 'Chrome', '1.0'],
     getMessage: async () => ({ conversation: "hello" })
   });
 
@@ -66,7 +68,7 @@ async function startSocket() {
 
 startSocket();
 
-// ✅ Get QR Code
+// ✅ QR API
 app.get('/api/qr', async (req, res) => {
   if (isReady) return res.json({ message: '✅ Already authenticated!' });
   if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
@@ -74,17 +76,19 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrImage });
 });
 
-// ✅ Start Message Sending with Name as Prefix
+// ✅ Start API
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Form parse error' });
 
     const receiver = (fields.receiver || "").toString().trim();
-    const name = (fields.name || "").toString().trim(); // ✅ Receiver name input
+    const name = (fields.name || "").toString().trim();
     const delaySec = parseInt(fields.delay) || 2;
 
-    if (!receiver) return res.status(400).json({ error: '❌ Receiver required' });
+    if (!receiver) {
+      return res.status(400).json({ error: '❌ Receiver required' });
+    }
 
     let jid;
     if (/^\d{10,15}$/.test(receiver)) {
@@ -92,7 +96,7 @@ app.post('/api/start', (req, res) => {
     } else if (receiver.endsWith('@g.us')) {
       jid = receiver;
     } else {
-      return res.status(400).json({ error: '❌ Invalid receiver. Use phone or group ID.' });
+      return res.status(400).json({ error: '❌ Invalid receiver. Use phone number or group ID.' });
     }
 
     if (!files.file) return res.status(400).json({ error: '❌ File required' });
@@ -107,8 +111,7 @@ app.post('/api/start', (req, res) => {
       .map(line => line.trim())
       .filter(Boolean);
 
-    // ✅ Add name as prefix: HATER HLO
-    const personalizedLines = lines.map(line => `${name} ${line}`);
+    const personalizedLines = lines.map(line => `${name} ${line.replace(/{name}/gi, '')}`.trim());
 
     if (personalizedLines.length === 0) {
       return res.status(400).json({ error: '❌ File is empty.' });
@@ -120,7 +123,14 @@ app.post('/api/start', (req, res) => {
       while (isLooping) {
         for (const line of personalizedLines) {
           if (!isLooping) break;
-          await sock.sendMessage(jid, { text: line });
+          try {
+            await sock.sendMessage(jid, { text: line });
+            const timestamp = new Date().toLocaleTimeString();
+            messageLogs.push(`[${timestamp}] Sent to ${receiver}: ${line}`);
+          } catch (err) {
+            const timestamp = new Date().toLocaleTimeString();
+            messageLogs.push(`[${timestamp}] ❌ Failed: ${line}`);
+          }
           await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
         }
       }
@@ -131,11 +141,17 @@ app.post('/api/start', (req, res) => {
   });
 });
 
-// ✅ Stop Message Sending
+// ✅ Stop API
 app.post('/api/stop', (req, res) => {
   isLooping = false;
   currentLoop = null;
+  messageLogs.push(`[${new Date().toLocaleTimeString()}] 🛑 Sending stopped`);
   res.json({ message: '🛑 Message sending stopped.' });
+});
+
+// ✅ Logs API
+app.get('/api/logs', (req, res) => {
+  res.json({ logs: messageLogs });
 });
 
 app.listen(PORT, () => {
