@@ -1,14 +1,16 @@
 {
-  "name": "baileys-bot",
-  "version": "1.0.0",
-  "main": "app.js",
-  "scripts": {
-    "start": "node app.js"
-  },
-  "dependencies": {
-    "express": "^5.1.0",
-    "formidable": "^3.5.4",
-    "@whiskeysockets/baileys": "^6.7.18",
-    "qrcode": "^1.5.3"
-  }
+  "name": "whatsapp-auto-sender",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "express": "^5.1.0",
+    "formidable": "^3.5.4",
+    "fs": "0.0.1-security",
+    "path": "^0.12.7",
+    "qrcode": "^1.5.3"
+  }
 }
