@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Auto Sender</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    h1 {
+      margin-top: 1rem;
+      font-size: 1.8rem;
+      color: #00ffd0;
+    }
+
+    #qr {
+      margin: 1rem 0;
+      border: 3px dashed #00ffd0;
+      padding: 10px;
+      background: #fff;
+      text-align: center;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1rem;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 255, 208, 0.2);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="file"] {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 12px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .start {
+      background: #00ffd0;
+      color: black;
+    }
+
+    .stop {
+      background: red;
+      color: white;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-size: 1rem;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 400px;
+      word-wrap: break-word;
+    }
+
+    .info {
+      font-size: 0.9rem;
+      color: #ccc;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1> WhatsApp Auto Sender</h1>
+
+  <div class="info"> Inbox: 919876543210 | Group: 12038273xxx@g.us</div>
+
+  <div id="qr">Loading QR...</div>
+
+  <form id="sendForm">
+    <input type="text" name="receiver" placeholder="Receiver (Number or Group JID)" required />
+    <input type="number" name="delay" placeholder="Delay in seconds (e.g. 2)" required />
+    <input type="file" name="file" accept=".txt" required />
+    <button type="submit" class="start"> Start Sending</button>
+  </form>
+
+  <button class="stop" onclick="stopSending()"> Stop</button>
+
+  <div id="message">Status: Waiting for QR...</div>
+
+  <script>
+    let isConnected = false;
+
+    async function loadQR() {
+      const res = await fetch('/api/qr');
+      const data = await res.json();
+      const qrBox = document.getElementById('qr');
+      const msgBox = document.getElementById('message');
+
+      if (data.qr) {
+        qrBox.innerHTML = `<img src="${data.qr}" width="200" />`;
+        msgBox.innerText = ' Scan QR Code to Connect...';
+        setTimeout(loadQR, 3000);
+      } else {
+        qrBox.innerText = data.message;
+        msgBox.innerText = `Status: ${data.message}`;
+        if (data.message.includes('authenticated')) {
+          isConnected = true;
+        } else {
+          setTimeout(loadQR, 3000);
+        }
+      }
+    }
+
+    loadQR();
+
+    document.getElementById('sendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!isConnected) {
+        document.getElementById('message').innerText = ' Not connected yet.';
+        return;
+      }
+
+      const form = e.target;
+      const formData = new FormData(form);
+
+      document.getElementById('message').innerText = ' Starting message loop...';
+
+      const res = await fetch('/api/start', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message || data.error;
+    });
+
+    async function stopSending() {
+      const res = await fetch('/api/stop', { method: 'POST' });
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message;
+    }
+  </script>
+</body>
+</html>
