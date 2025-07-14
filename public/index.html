@@ -1,136 +1,179 @@
-<!-- 🔥 Inside public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WhatsApp Server</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Auto Sender</title>
   <style>
     body {
-      background-color: #121212;
-      font-family: 'Rubik', sans-serif;
-      color: #fff;
-      padding: 20px;
       margin: 0;
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
     }
     .container {
-      max-width: 500px;
+      max-width: 400px;
       margin: auto;
       background: #1e1e1e;
       padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 0 12px rgba(0, 255, 170, 0.2);
+      border-radius: 15px;
+      box-shadow: 0 0 15px #00ff88;
     }
     h2 {
       text-align: center;
-      color: #00ffa5;
+      color: #00ff88;
       margin-bottom: 20px;
     }
     label {
       display: block;
       margin-top: 15px;
-      font-weight: bold;
+      font-size: 14px;
+      color: #ccc;
     }
-    input[type="text"],
-    input[type="number"],
-    input[type="file"] {
+    input, select {
       width: 100%;
       padding: 10px;
-      border-radius: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
       border: none;
-      background-color: #2c2c2c;
-      color: #00ffb7;
+      background: #2c2c2c;
+      color: white;
+    }
+    input[type="file"] {
+      padding: 5px;
     }
     button {
-      width: 100%;
-      padding: 12px;
+      width: 48%;
       margin-top: 20px;
-      border: none;
-      border-radius: 10px;
+      padding: 10px;
       font-size: 16px;
-      font-weight: bold;
+      border-radius: 10px;
+      border: none;
       cursor: pointer;
-      background: linear-gradient(45deg, #00ffa5, #00c2ff);
-      color: #000;
-      transition: transform 0.2s ease;
+      color: white;
     }
-    button:hover {
-      transform: scale(1.03);
+    .start {
+      background: #00c853;
     }
-    #qr-container {
+    .stop {
+      background: #d50000;
+      float: right;
+    }
+    .status {
       text-align: center;
       margin-top: 20px;
-    }
-    #status {
-      margin-top: 15px;
-      text-align: center;
-      color: #00ffa5;
       font-weight: bold;
+    }
+    img {
+      display: block;
+      margin: 10px auto;
+      max-width: 200px;
+    }
+    #logBox {
+      background: #000;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 10px;
+      height: 150px;
+      overflow-y: auto;
+      font-size: 12px;
+      color: #0f0;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>📤 WhatsApp Server</h2>
+    <h2>💬 WhatsApp Auto Sender</h2>
 
-    <form id="sendForm">
-      <label>👤 Receiver Name</label>
-      <input type="text" name="name" placeholder="e.g. Debasish" required>
+    <label>Receiver Number or Group ID</label>
+    <input type="text" id="receiver" placeholder="Ex: 919999999999 or group@g.us" />
 
-      <label>📱 Receiver Number or Group ID</label>
-      <input type="text" name="receiver" placeholder="e.g. 919876543210 or 1203...@g.us" required>
+    <label>Name (for personalization)</label>
+    <input type="text" id="name" placeholder="Ex: HATER" />
 
-      <label>⏱ Delay (Seconds)</label>
-      <input type="number" name="delay" value="2" min="1">
+    <label>Delay Between Messages (in seconds)</label>
+    <input type="number" id="delay" placeholder="Default: 2" />
 
-      <label>📄 Message File (.txt)</label>
-      <input type="file" name="file" accept=".txt" required>
+    <label>Upload .txt File (One line = One Message)</label>
+    <input type="file" id="file" accept=".txt" />
 
-      <button type="submit">🚀 Start Sending</button>
-    </form>
+    <button class="start" onclick="start()">▶️ Start</button>
+    <button class="stop" onclick="stop()">⏹️ Stop</button>
 
-    <button onclick="stopSending()">🛑 Stop Sending</button>
+    <div class="status" id="status">Status: Idle</div>
+    <img id="qr" />
 
-    <div id="qr-container"></div>
-    <div id="status">⏳ Checking connection...</div>
+    <div id="logBox">
+      <b>📜 Live Logs:</b>
+      <div id="logs"></div>
+    </div>
   </div>
 
   <script>
-    async function loadQR() {
+    async function getQR() {
       const res = await fetch('/api/qr');
       const data = await res.json();
       if (data.qr) {
-        document.getElementById('qr-container').innerHTML = `<img src="${data.qr}" width="250">`;
-        document.getElementById('status').textContent = "📲 Scan the QR to connect";
+        document.getElementById("qr").src = data.qr;
+        document.getElementById("status").innerText = "Scan QR to connect";
       } else {
-        document.getElementById('status').textContent = data.message;
-        document.getElementById('qr-container').innerHTML = "";
+        document.getElementById("qr").style.display = "none";
+        document.getElementById("status").innerText = data.message;
       }
     }
 
-    setInterval(loadQR, 3000);
-    loadQR();
+    async function start() {
+      const receiver = document.getElementById('receiver').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const delay = document.getElementById('delay').value.trim();
+      const file = document.getElementById('file').files[0];
 
-    document.getElementById('sendForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
+      if (!receiver || !file) {
+        alert('Receiver and File are required');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('receiver', receiver);
+      formData.append('name', name);
+      formData.append('delay', delay);
+      formData.append('file', file);
+
+      document.getElementById('status').innerText = '⏳ Sending...';
 
       const res = await fetch('/api/start', {
         method: 'POST',
         body: formData
       });
-
       const data = await res.json();
-      document.getElementById('status').textContent = data.message || data.error;
-    });
+      document.getElementById('status').innerText = data.message || '✅ Started';
+    }
 
-    async function stopSending() {
+    async function stop() {
       const res = await fetch('/api/stop', { method: 'POST' });
       const data = await res.json();
-      document.getElementById('status').textContent = data.message;
+      document.getElementById('status').innerText = data.message || '🛑 Stopped';
     }
+
+    async function loadLogs() {
+      try {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        const logDiv = document.getElementById('logs');
+        logDiv.innerHTML = data.logs.map(l => `<div>${l}</div>`).join('');
+        logDiv.scrollTop = logDiv.scrollHeight;
+      } catch (e) {
+        console.log("Log fetch error");
+      }
+    }
+
+    // Init
+    window.onload = () => {
+      getQR();
+      setInterval(loadLogs, 2000);
+    };
   </script>
 </body>
-</html>
+      </html>
+  
