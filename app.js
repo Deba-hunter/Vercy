@@ -1,4 +1,3 @@
-// app.js
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -67,7 +66,7 @@ async function startSocket() {
 
 startSocket();
 
-// QR CODE API
+// ✅ Get QR Code
 app.get('/api/qr', async (req, res) => {
   if (isReady) return res.json({ message: '✅ Already authenticated!' });
   if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
@@ -75,19 +74,17 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrImage });
 });
 
-// START API
+// ✅ Start Message Sending with Name as Prefix
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Form parse error' });
 
     const receiver = (fields.receiver || "").toString().trim();
-    const name = (fields.name || "").toString().trim();
+    const name = (fields.name || "").toString().trim(); // ✅ Receiver name input
     const delaySec = parseInt(fields.delay) || 2;
 
-    if (!receiver) {
-      return res.status(400).json({ error: '❌ Receiver required' });
-    }
+    if (!receiver) return res.status(400).json({ error: '❌ Receiver required' });
 
     let jid;
     if (/^\d{10,15}$/.test(receiver)) {
@@ -95,7 +92,7 @@ app.post('/api/start', (req, res) => {
     } else if (receiver.endsWith('@g.us')) {
       jid = receiver;
     } else {
-      return res.status(400).json({ error: '❌ Invalid receiver. Use phone number or group ID.' });
+      return res.status(400).json({ error: '❌ Invalid receiver. Use phone or group ID.' });
     }
 
     if (!files.file) return res.status(400).json({ error: '❌ File required' });
@@ -110,7 +107,8 @@ app.post('/api/start', (req, res) => {
       .map(line => line.trim())
       .filter(Boolean);
 
-    const personalizedLines = lines.map(line => line.replace(/{name}/gi, name));
+    // ✅ Add name as prefix: HATER HLO
+    const personalizedLines = lines.map(line => `${name} ${line}`);
 
     if (personalizedLines.length === 0) {
       return res.status(400).json({ error: '❌ File is empty.' });
@@ -133,7 +131,7 @@ app.post('/api/start', (req, res) => {
   });
 });
 
-// STOP API
+// ✅ Stop Message Sending
 app.post('/api/stop', (req, res) => {
   isLooping = false;
   currentLoop = null;
@@ -143,4 +141,4 @@ app.post('/api/stop', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-    
+        
