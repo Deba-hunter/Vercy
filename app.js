@@ -1,9 +1,10 @@
-// app.js
+// ✅ app.js
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const formidable = require('formidable');
 const qrcode = require('qrcode');
+const moment = require('moment-timezone');
+const formidable = require('formidable');
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -17,18 +18,16 @@ const sessionFolder = path.join(__dirname, 'session');
 
 app.use(express.json());
 app.use(express.static('public'));
-
 if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
 
 let globalSocket = null;
 let qrData = null;
 let isReady = false;
-let isLooping = false;
-let currentLoop = null;
-let messageLogs = []; // ✅ Logs storage
+let messageLogs = [];
+let globalConfig = { name: '', delay: 2, lines: [] };
+let activeLoops = {}; // key: jid, value: boolean
 
 async function startSocket() {
-  if (globalSocket) return;
   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
   const { version } = await fetchLatestBaileysVersion();
 
@@ -36,22 +35,16 @@ async function startSocket() {
     version,
     auth: state,
     printQRInTerminal: false,
-    browser: ['Aadi Server', 'Chrome', '1.0'],
-    getMessage: async () => ({ conversation: "hello" })
+    browser: ['AutoBot', 'Chrome', '1.0']
   });
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', async (update) => {
-    const { qr, connection, lastDisconnect } = update;
-    if (qr) {
-      qrData = qr;
-      isReady = false;
-    }
+  sock.ev.on('connection.update', async ({ qr, connection, lastDisconnect }) => {
+    if (qr) qrData = qr;
     if (connection === 'open') {
       isReady = true;
       qrData = null;
-      console.log('✅ WhatsApp Connected!');
     }
     if (connection === 'close') {
       isReady = false;
@@ -59,102 +52,86 @@ async function startSocket() {
       globalSocket = null;
       if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
         setTimeout(startSocket, 3000);
+      } else {
+        fs.rmSync(sessionFolder, { recursive: true, force: true });
+        fs.mkdirSync(sessionFolder);
+        setTimeout(startSocket, 1000);
       }
+    }
+  });
+
+  sock.ev.on('messages.upsert', async ({ messages }) => {
+    const msg = messages[0];
+    const from = msg.key.remoteJid;
+    const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+    if (!text) return;
+
+    if (text.trim() === '.' && !activeLoops[from] && globalConfig.lines.length > 0) {
+      activeLoops[from] = true;
+      const timestamp = moment().tz("Asia/Kolkata").format("hh:mm:ss A");
+      messageLogs.push(`[${timestamp}] 🚀 '.' triggered from ${from}`);
+
+      const loopSend = async () => {
+        while (activeLoops[from]) {
+          for (const raw of globalConfig.lines) {
+            if (!activeLoops[from]) break;
+            const msgText = raw.replace(/{name}/gi, globalConfig.name);
+            try {
+              await sock.sendMessage(from, { text: msgText });
+              const ts = moment().tz("Asia/Kolkata").format("hh:mm:ss A");
+              messageLogs.push(`[${ts}] ✅ Sent to ${from}: ${msgText}`);
+            } catch {
+              const ts = moment().tz("Asia/Kolkata").format("hh:mm:ss A");
+              messageLogs.push(`[${ts}] ❌ Failed to send to ${from}: ${msgText}`);
+            }
+            await new Promise(res => setTimeout(res, globalConfig.delay * 1000));
+          }
+        }
+      };
+      loopSend();
+    }
+
+    if (text.trim() === '.stop' && activeLoops[from]) {
+      activeLoops[from] = false;
+      const timestamp = moment().tz("Asia/Kolkata").format("hh:mm:ss A");
+      messageLogs.push(`[${timestamp}] 🛑 '.stop' received from ${from}`);
     }
   });
 
   globalSocket = sock;
 }
-
 startSocket();
 
-// ✅ QR API
 app.get('/api/qr', async (req, res) => {
-  if (isReady) return res.json({ message: '✅ Already authenticated!' });
-  if (!qrData) return res.json({ message: '⏳ QR code not ready yet.' });
-  const qrImage = await qrcode.toDataURL(qrData);
-  res.json({ qr: qrImage });
+  if (isReady) return res.json({ message: '✅ Already connected' });
+  if (!qrData) return res.json({ message: '⏳ QR not ready' });
+  const img = await qrcode.toDataURL(qrData);
+  res.json({ qr: img });
 });
 
-// ✅ Start API
 app.post('/api/start', (req, res) => {
   const form = new formidable.IncomingForm();
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Form parse error' });
 
-    const receiver = (fields.receiver || "").toString().trim();
-    const name = (fields.name || "").toString().trim();
-    const delaySec = parseInt(fields.delay) || 2;
-
-    if (!receiver) {
-      return res.status(400).json({ error: '❌ Receiver required' });
-    }
-
-    let jid;
-    if (/^\d{10,15}$/.test(receiver)) {
-      jid = receiver + '@s.whatsapp.net';
-    } else if (receiver.endsWith('@g.us')) {
-      jid = receiver;
-    } else {
-      return res.status(400).json({ error: '❌ Invalid receiver. Use phone number or group ID.' });
-    }
-
-    if (!files.file) return res.status(400).json({ error: '❌ File required' });
-
-    const sock = globalSocket;
-    if (!sock || !isReady) return res.status(400).json({ error: '❌ WhatsApp not connected' });
-
+    const name = (fields.name || '').toString().trim();
+    const delay = parseInt(fields.delay) || 2;
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
-    const filePath = file.filepath || file.path;
-    const lines = fs.readFileSync(filePath, 'utf-8')
+    const filepath = file.filepath || file.path;
+    const lines = fs.readFileSync(filepath, 'utf-8')
       .split('\n')
       .map(line => line.trim())
       .filter(Boolean);
 
-    const personalizedLines = lines.map(line => `${name} ${line.replace(/{name}/gi, '')}`.trim());
+    if (lines.length === 0) return res.status(400).json({ error: 'File empty' });
 
-    if (personalizedLines.length === 0) {
-      return res.status(400).json({ error: '❌ File is empty.' });
-    }
-
-    isLooping = true;
-
-    const sendMessages = async () => {
-      while (isLooping) {
-        for (const line of personalizedLines) {
-          if (!isLooping) break;
-          try {
-            await sock.sendMessage(jid, { text: line });
-            const timestamp = new Date().toLocaleTimeString();
-            messageLogs.push(`[${timestamp}] Sent to ${receiver}: ${line}`);
-          } catch (err) {
-            const timestamp = new Date().toLocaleTimeString();
-            messageLogs.push(`[${timestamp}] ❌ Failed: ${line}`);
-          }
-          await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
-        }
-      }
-    };
-
-    currentLoop = sendMessages();
-    return res.json({ message: `✅ Started sending messages to ${receiver}` });
+    globalConfig = { name, delay, lines };
+    res.json({ message: '✅ Config loaded. Send "." in WhatsApp to start.' });
   });
 });
 
-// ✅ Stop API
-app.post('/api/stop', (req, res) => {
-  isLooping = false;
-  currentLoop = null;
-  messageLogs.push(`[${new Date().toLocaleTimeString()}] 🛑 Sending stopped`);
-  res.json({ message: '🛑 Message sending stopped.' });
-});
-
-// ✅ Logs API
 app.get('/api/logs', (req, res) => {
   res.json({ logs: messageLogs });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
-        
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
