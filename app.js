@@ -35,7 +35,7 @@ async function startSocket() {
     version,
     auth: state,
     printQRInTerminal: false,
-    browser: ['AutoBot', 'Chrome', '1.0']
+    browser: ['Aadi Server', 'Chrome', '1.0']
   });
 
   sock.ev.on('creds.update', saveCreds);
